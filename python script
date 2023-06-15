@@ -1,0 +1,59 @@
+import time
+import json
+import requests
+
+url = 'https://api.ordinalhub.com/api/v1/authenticate'
+headers = {
+     'accept': 'application/json',
+     'Content-Type': 'application/json'
+}
+data = {
+     'client_key': 'key',
+     'client_secret': 'secret'
+} # Register to get an API key and secret key: https://www.ordinalhub.com/developer
+
+response = requests.post(url, headers = headers, data = json.dumps(data))
+token = json.loads(response.content)['access_token'] # Saves your access token to use in all requests
+## FETCH COLLECTION DATA ##
+collection = 'anons' # Put the collection slug here
+base_url = 'https://api.ordinalhub.com/api/v1/collections/'
+url = base_url + collection
+headers = {
+     'accept': 'application/json',
+     'Authorization': f'Bearer {token}'
+}
+params = {
+    'page': '1',
+    'size': '10'
+}
+
+response = requests.get(url, headers = headers, params=params) # Fetches the collection data
+collection_content = json.loads(response.content) # Saves the content in a json file
+with open(collection + ".json", "w") as outfile:
+     outfile.write(json.dumps(collection_content))
+
+r = response.json()
+
+ids = [inscription['inscription_id'] for inscription in r['inscriptions']] # Save all inscription IDs as a list
+
+## FETCH INSCRIPTIONS DATA FROM COLLECTION ##
+base_url = 'https://api.ordinalhub.com/api/v1/inscriptions/'
+responses = []
+
+## Get inscription data for all ids in the "ids" list
+i = 1
+for id in ids:
+     if i < 3:
+        url = base_url + id
+        response = requests.get(url, headers = headers, params=params)
+        data = response.json()
+        #print(data)
+        responses.append(data)
+        time.sleep(1)
+        i = i + 1
+
+
+print(responses)
+inscription_ids = json.dumps(responses)
+with open("ids.json", "w") as outfile:
+     outfile.write(inscription_ids)
